@@ -1,31 +1,26 @@
 import React, { useState, useRef } from 'react';
 
-const Controls = () => {
-  // State to manage the selected year and start time
+const Controls = ({ onFileLoad }) => { // Accept the onFileLoad prop
   const [selectedYear, setSelectedYear] = useState('2024');
   const [startTime, setStartTime] = useState('07:20');
   const [fileName, setFileName] = useState('');
 
-  // Ref to access the hidden file input element
   const fileInputRef = useRef(null);
 
-  // Placeholder function for when the GO button is clicked
   const handleSimulate = () => {
     console.log(`Starting simulation with Year: ${selectedYear}, Start Time: ${startTime}, and File: ${fileName}`);
   };
 
-  // Triggers the hidden file input when the visible button is clicked
   const handleLoadFileClick = () => {
     fileInputRef.current.click();
   };
 
-  // Handles the file selection and updates the state
+  // When a file is selected, call the function from the parent
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
       setFileName(file.name);
-      // In a real app, you would start processing the file here
-      console.log('Selected file:', file.name);
+      onFileLoad(file); // Pass the entire file object up to the parent
     }
   };
 
@@ -56,7 +51,6 @@ const Controls = () => {
           value={selectedYear}
           onChange={(e) => setSelectedYear(e.target.value)}
         >
-          {/* Hard-coded years 2018-2024 */}
           <option value="2024">2024</option>
           <option value="2023">2023</option>
           <option value="2022">2022</option>
