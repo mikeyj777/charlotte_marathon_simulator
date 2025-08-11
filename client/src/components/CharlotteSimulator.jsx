@@ -2,80 +2,64 @@ import React, { useState, useEffect } from 'react';
 import Controls from './panels/Controls';
 import MapView from './panels/MapView';
 import { parseCSV } from '../utils/utils.js';
-import { getElevationsFromKML, calculateMileMarkers } from '../utils/geoUtils.js';
+import { getCoordsFromKML, calculateMileMarkers, getElevationForMileMarkers } from '../utils/geoUtils.js';
 
 const CharlotteSimulator = () => {
   const [fullWeatherData, setFullWeatherData] = useState(null);
   const [simulationData, setSimulationData] = useState(null);
   const [raceRoute, setRaceRoute] = useState(null);
-  const [elevationData, setElevationData] = useState(null);
   const [mileMarkers, setMileMarkers] = useState(null);
   const [defaultYear] = useState('2024');
 
-  // This useEffect hook runs whenever `fullWeatherData` changes.
-  // It ensures the data is filtered for the default year as soon as it's loaded.
   useEffect(() => {
     if (fullWeatherData) {
       handleYearSelect(defaultYear);
     }
   }, [fullWeatherData]);
 
-  /**
-   * Handles loading and parsing the weather data CSV file.
-   */
-  const handleWeatherLoad = async (file) => {
-    try {
-      const content = await file.text();
-      const parsedData = parseCSV(content);
-      setFullWeatherData(parsedData); // This state change will trigger the useEffect
-      console.log('Full weather data loaded and parsed.');
-    } catch (error) {
-      console.error('Error reading weather file:', error);
-    }
-  };
-
-  /**
-   * Handles loading the KML route, then fetching elevation data and calculating mile markers.
-   */
   const handleRouteLoad = async (file) => {
     try {
       const content = await file.text();
-      setRaceRoute(content);
-      console.log('Race route loaded. Fetching elevations...');
+      setRaceRoute(content); // Set KML text for the map overlay
+      console.log('Route file loaded.');
 
-      // Get elevation data for the coordinates in the KML
-      const elevations = await getElevationsFromKML(content);
-      setElevationData(elevations);
-      console.log('Elevation data fetched.');
+      // Step 1: Get coordinates from the KML file.
+      const coords = getCoordsFromKML(content);
+      if (!coords) return;
+      console.log('Coordinates extracted from KML.');
 
-      // If elevations were successfully fetched, calculate the mile markers
-      if (elevations) {
-        const markers = calculateMileMarkers(elevations);
-        setMileMarkers(markers);
-        console.log('Mile markers calculated.', markers);
-      }
+      // Step 2: Calculate the lat/lon for each mile marker.
+      const markersWithoutElevation = calculateMileMarkers(coords);
+      console.log('Mile marker coordinates calculated. Fetching their elevations...');
+
+      // Step 3: Make a single API call to get elevation for only the markers.
+      const finalMarkers = await getElevationForMileMarkers(markersWithoutElevation);
+      setMileMarkers(finalMarkers);
+      console.log('Final mile markers with elevation created.', finalMarkers);
 
     } catch (error) {
       console.error('Error handling route file:', error);
     }
   };
 
-  /**
-   * Filters the full weather dataset based on the selected year.
-   */
   const handleYearSelect = (year) => {
-    if (!fullWeatherData) {
-      console.log('Weather data not loaded yet. Please load a file first.');
-      return;
-    }
-    
-    const filteredData = fullWeatherData.filter(record => {
-      const recordYear = new Date(record.date).getFullYear();
-      return recordYear === parseInt(year, 10);
-    });
-    
+    if (!fullWeatherData) return;
+    const filteredData = fullWeatherData.filter(record => 
+      new Date(record.date).getFullYear() === parseInt(year, 10)
+    );
     setSimulationData(filteredData);
-    console.log(`Weather data filtered for ${year}. Found ${filteredData.length} records.`, filteredData.slice(0,5));
+    console.log(`Weather data filtered for ${year}.`);
+  };
+
+  const handleWeatherLoad = async (file) => {
+    try {
+      const content = await file.text();
+      const parsedData = parseCSV(content);
+      setFullWeatherData(parsedData); 
+      console.log('Full weather data loaded and parsed.');
+    } catch (error) {
+      console.error('Error reading weather file:', error);
+    }
   };
 
   return (
