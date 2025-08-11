@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './components/Home';
 import './App.css';
 import './styles/global.css';
+import CharlotteSimulator from './components/CharlotteSimulator';
 
 const App = () => {
   return (
@@ -10,6 +11,7 @@ const App = () => {
       <div>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/race" element={<CharlotteSimulator />} />
         </Routes>
       </div>
     </Router>

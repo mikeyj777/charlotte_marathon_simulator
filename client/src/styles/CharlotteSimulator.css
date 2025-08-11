@@ -1,0 +1,61 @@
+/*
+  CharlotteSimulator.css
+  - This file styles the main two-panel layout container.
+  - It uses BEM naming: .block__element--modifier
+*/
+
+/* Main container for the entire application */
+.charlotte-simulator {
+  display: flex;
+  height: 100vh; /* Full viewport height */
+  width: 100vw; /* Full viewport width */
+  font-family: Arial, sans-serif;
+  background-color: #f0f2f5; /* A light grey background */
+}
+
+/*
+  Left Panel (Main Visualization Area)
+  - Takes up the majority of the space.
+  - Contains all the visualization components.
+*/
+.charlotte-simulator__main-panel {
+  flex: 3; /* Takes up 3 parts of the available space */
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+}
+
+/*
+  Right Panel (Controls)
+  - Fixed width for controls.
+  - Has a border to create visual separation.
+  - Will scroll vertically if content overflows.
+*/
+.charlotte-simulator__control-panel {
+  flex: 1; /* Takes up 1 part of the available space */
+  max-width: 300px; /* A fixed maximum width */
+  padding: 20px;
+  border-left: 1px solid #ccc; /* Visual separator */
+  background-color: #ffffff;
+  overflow-y: auto; /* Enables vertical scrolling on overflow */
+}
+
+/* Placeholder styles for the child component divs */
+.main-panel__map-view {
+  flex-grow: 1; /* Allows the map to take up most of the vertical space */
+  border: 1px dashed #999;
+  margin-bottom: 10px;
+}
+
+.main-panel__status-bar,
+.main-panel__weather-bar,
+.main-panel__elevation-profile {
+  border: 1px dashed #999;
+  min-height: 60px; /* Minimum height for visibility */
+  margin-bottom: 10px;
+}
+
+/* Remove margin from the last element to prevent extra space */
+.main-panel__elevation-profile {
+  margin-bottom: 0;
+}
