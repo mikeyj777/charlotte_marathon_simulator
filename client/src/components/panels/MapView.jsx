@@ -1,37 +1,60 @@
 import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
+import 'leaflet-kml'; // Import the KML plugin
 
-const MapView = () => {
-  // Refs to hold the map container DOM element and the map instance
+const MapView = ({ raceRoute }) => {
+  // Refs for the container, map instance, and the KML layer
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const kmlLayerRef = useRef(null);
 
+  // Effect for initializing the map (runs only once)
   useEffect(() => {
-    // Prevents map from being initialized more than once
-    if (mapInstanceRef.current) {
-      return;
-    }
+    if (mapInstanceRef.current) return;
 
-    // Initialize the map
-    // A zoom level of 10 is approximately 15-20 miles in view distance.
     mapInstanceRef.current = L.map(mapContainerRef.current).setView(
-      [35.216636, -80.820670], // Charlotte Lat/Long
-      10
+      [35.216636, -80.820670],
+      12 // User-adjusted zoom level
     );
 
-    // Add the tile layer from OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(mapInstanceRef.current);
 
-    // Cleanup function to run when the component is unmounted
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
-  }, []); // Empty dependency array ensures this effect runs only once
+  }, []);
+
+  // Effect for adding the KML overlay (runs when raceRoute changes)
+  useEffect(() => {
+    if (!raceRoute || !mapInstanceRef.current) return;
+
+    // Remove any existing KML layer before adding a new one
+    if (kmlLayerRef.current) {
+      mapInstanceRef.current.removeLayer(kmlLayerRef.current);
+    }
+    
+    // The plugin expects a URL, so we create a virtual one from our KML text
+    const blob = new Blob([raceRoute], { type: 'application/vnd.google-earth.kml+xml' });
+    const url = URL.createObjectURL(blob);
+
+    // Create the KML layer
+    const kmlLayer = new L.KML(url, { async: true });
+
+    kmlLayer.on('loaded', (e) => {
+      // Once loaded, fit the map's view to the route's bounds
+      mapInstanceRef.current.fitBounds(e.target.getBounds());
+    });
+    
+    // Add the layer to the map and save a reference to it for cleanup
+    mapInstanceRef.current.addLayer(kmlLayer);
+    kmlLayerRef.current = kmlLayer;
+    
+  }, [raceRoute]); // Dependency array: this runs when raceRoute changes
 
   return (
     <div ref={mapContainerRef} className="map-view-container" />
