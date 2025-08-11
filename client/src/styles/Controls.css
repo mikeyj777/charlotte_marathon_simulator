@@ -1,0 +1,73 @@
+/*
+  Controls.css
+  - Styles the form elements in the right-hand control panel.
+*/
+
+.controls-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 25px; /* Creates space between the control groups */
+}
+
+.controls-panel__group {
+  display: flex;
+  flex-direction: column;
+}
+
+.controls-panel__label {
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.controls-panel__select,
+.controls-panel__input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+/* Primary "GO" button */
+.controls-panel__button {
+  padding: 15px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  background-color: #28a745; /* A strong green color */
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: center;
+  margin-top: 10px; /* Add some space above the button */
+  transition: background-color 0.2s ease-in-out;
+}
+
+.controls-panel__button:hover {
+  background-color: #218838; /* A slightly darker green on hover */
+}
+
+/* Secondary button for actions like loading files */
+.controls-panel__button--secondary {
+  padding: 10px;
+  font-size: 1rem;
+  color: #333;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.controls-panel__button--secondary:hover {
+  background-color: #f0f0f0;
+}
+
+/* Style for displaying the selected file name */
+.controls-panel__file-name {
+  margin-top: 10px;
+  font-style: italic;
+  color: #555;
+  word-wrap: break-word; /* Ensure long file names don't overflow */
+}

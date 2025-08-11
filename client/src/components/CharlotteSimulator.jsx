@@ -1,14 +1,7 @@
 import React from 'react';
-import './styles/CharlotteSimulator.css';
+import Controls from './panels/Controls'; // Import the new Controls component
 
-// Placeholder comment: In the future, we will import child components here
-// import MapView from './MapView';
-// import StatusBar from './StatusBar';
-// import WeatherBar from './WeatherBar';
-// import ElevationProfile from './ElevationProfile';
-// import Controls from './Controls';
-
-function CharlotteSimulator() {
+const CharlotteSimulator = () => {
   return (
     <div className="charlotte-simulator">
       {/* Left panel for all visualizations */}
@@ -29,10 +22,10 @@ function CharlotteSimulator() {
 
       {/* Right panel for all user controls */}
       <div className="charlotte-simulator__control-panel">
-        {/* Controls component will go here */}
+        <Controls />
       </div>
     </div>
   );
-}
+};
 
 export default CharlotteSimulator;
