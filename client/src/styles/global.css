@@ -6,3 +6,4 @@ import and include all other component stylesheets for reference */
 @import './Home.css';
 @import './CharlotteSimulator.css';
 @import './Controls.css';
+@import './MapView.css';

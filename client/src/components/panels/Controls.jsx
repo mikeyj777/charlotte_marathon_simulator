@@ -1,56 +1,63 @@
 import React, { useState, useRef } from 'react';
 
-const Controls = ({ onFileLoad }) => { // Accept the onFileLoad prop
+const Controls = ({ onFileLoad, onRouteLoad, onYearSelect }) => { // Accept new props
   const [selectedYear, setSelectedYear] = useState('2024');
-  const [startTime, setStartTime] = useState('07:20');
-  const [fileName, setFileName] = useState('');
+  const [weatherFileName, setWeatherFileName] = useState('');
+  const [routeName, setRouteName] = useState('');
 
-  const fileInputRef = useRef(null);
+  // Refs for two separate hidden file inputs
+  const weatherFileRef = useRef(null);
+  const routeFileRef = useRef(null);
 
-  const handleSimulate = () => {
-    console.log(`Starting simulation with Year: ${selectedYear}, Start Time: ${startTime}, and File: ${fileName}`);
-  };
-
-  const handleLoadFileClick = () => {
-    fileInputRef.current.click();
-  };
-
-  // When a file is selected, call the function from the parent
-  const handleFileChange = (event) => {
+  // --- Handlers for Weather File ---
+  const handleLoadWeatherClick = () => weatherFileRef.current.click();
+  const handleWeatherFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
-      setFileName(file.name);
-      onFileLoad(file); // Pass the entire file object up to the parent
+      setWeatherFileName(file.name);
+      onFileLoad(file); // Pass weather file to parent
     }
+  };
+
+  // --- Handlers for Route File ---
+  const handleLoadRouteClick = () => routeFileRef.current.click();
+  const handleRouteFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setRouteName(file.name);
+      onRouteLoad(file); // Pass route file to parent
+    }
+  };
+  
+  // --- Handler for Year Selection ---
+  const handleYearChange = (event) => {
+    const year = event.target.value;
+    setSelectedYear(year);
+    onYearSelect(year); // Pass selected year to parent
+  };
+
+  // Placeholder for GO button
+  const handleSimulate = () => {
+    console.log(`Starting simulation for year: ${selectedYear}`);
   };
 
   return (
     <div className="controls-panel">
-      {/* Hidden file input, controlled by the button */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        style={{ display: 'none' }}
-        accept=".csv"
-      />
+      {/* Hidden file inputs */}
+      <input type="file" ref={weatherFileRef} onChange={handleWeatherFileChange} style={{ display: 'none' }} accept=".csv" />
+      <input type="file" ref={routeFileRef} onChange={handleRouteFileChange} style={{ display: 'none' }} accept=".kml,.gpx" />
 
       <div className="controls-panel__group">
-        <label className="controls-panel__label">1. Load Weather Data</label>
-        <button className="controls-panel__button--secondary" onClick={handleLoadFileClick}>
-          Select Wx Data File
-        </button>
-        {fileName && <p className="controls-panel__file-name">File: {fileName}</p>}
+        <label className="controls-panel__label">1. Load Files</label>
+        <button className="controls-panel__button--secondary" onClick={handleLoadWeatherClick}>Select Weather Data</button>
+        {weatherFileName && <p className="controls-panel__file-name">File: {weatherFileName}</p>}
+        <button className="controls-panel__button--secondary" style={{ marginTop: '10px' }} onClick={handleLoadRouteClick}>Select Race Route</button>
+        {routeName && <p className="controls-panel__file-name">File: {routeName}</p>}
       </div>
 
       <div className="controls-panel__group">
         <label htmlFor="year-select" className="controls-panel__label">2. Select Year</label>
-        <select
-          id="year-select"
-          className="controls-panel__select"
-          value={selectedYear}
-          onChange={(e) => setSelectedYear(e.target.value)}
-        >
+        <select id="year-select" className="controls-panel__select" value={selectedYear} onChange={handleYearChange}>
           <option value="2024">2024</option>
           <option value="2023">2023</option>
           <option value="2022">2022</option>
@@ -60,21 +67,10 @@ const Controls = ({ onFileLoad }) => { // Accept the onFileLoad prop
           <option value="2018">2018</option>
         </select>
       </div>
+      
+      {/* Removed start time for now to focus on filtering */}
 
-      <div className="controls-panel__group">
-        <label htmlFor="start-time" className="controls-panel__label">3. Set Start Time</label>
-        <input
-          type="time"
-          id="start-time"
-          className="controls-panel__input"
-          value={startTime}
-          onChange={(e) => setStartTime(e.target.value)}
-        />
-      </div>
-
-      <button className="controls-panel__button" onClick={handleSimulate}>
-        GO!
-      </button>
+      <button className="controls-panel__button" onClick={handleSimulate}>GO!</button>
     </div>
   );
 };
