@@ -1,49 +1,50 @@
 import React, { useState, useRef } from 'react';
 
-const Controls = ({ onFileLoad, onRouteLoad, onYearSelect }) => { // Accept new props
+const Controls = ({ onFileLoad, onRouteLoad, onYearSelect, onPaceChange, onStartSimulation }) => {
   const [selectedYear, setSelectedYear] = useState('2024');
   const [weatherFileName, setWeatherFileName] = useState('');
   const [routeName, setRouteName] = useState('');
+  const [targetPace, setTargetPace] = useState('12:00'); // Default pace
 
-  // Refs for two separate hidden file inputs
   const weatherFileRef = useRef(null);
   const routeFileRef = useRef(null);
 
-  // --- Handlers for Weather File ---
   const handleLoadWeatherClick = () => weatherFileRef.current.click();
   const handleWeatherFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
       setWeatherFileName(file.name);
-      onFileLoad(file); // Pass weather file to parent
+      onFileLoad(file);
     }
   };
 
-  // --- Handlers for Route File ---
   const handleLoadRouteClick = () => routeFileRef.current.click();
   const handleRouteFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
       setRouteName(file.name);
-      onRouteLoad(file); // Pass route file to parent
+      onRouteLoad(file);
     }
   };
   
-  // --- Handler for Year Selection ---
   const handleYearChange = (event) => {
     const year = event.target.value;
     setSelectedYear(year);
-    onYearSelect(year); // Pass selected year to parent
+    onYearSelect(year);
   };
 
-  // Placeholder for GO button
+  const handlePaceInputChange = (event) => {
+    const pace = event.target.value;
+    setTargetPace(pace);
+    onPaceChange(pace); // Pass pace up to the parent
+  };
+
   const handleSimulate = () => {
-    console.log(`Starting simulation for year: ${selectedYear}`);
+    onStartSimulation(targetPace);
   };
 
   return (
     <div className="controls-panel">
-      {/* Hidden file inputs */}
       <input type="file" ref={weatherFileRef} onChange={handleWeatherFileChange} style={{ display: 'none' }} accept=".csv" />
       <input type="file" ref={routeFileRef} onChange={handleRouteFileChange} style={{ display: 'none' }} accept=".kml,.gpx" />
 
@@ -58,6 +59,7 @@ const Controls = ({ onFileLoad, onRouteLoad, onYearSelect }) => { // Accept new 
       <div className="controls-panel__group">
         <label htmlFor="year-select" className="controls-panel__label">2. Select Year</label>
         <select id="year-select" className="controls-panel__select" value={selectedYear} onChange={handleYearChange}>
+          {/* Year options */}
           <option value="2024">2024</option>
           <option value="2023">2023</option>
           <option value="2022">2022</option>
@@ -68,9 +70,20 @@ const Controls = ({ onFileLoad, onRouteLoad, onYearSelect }) => { // Accept new 
         </select>
       </div>
       
-      {/* Removed start time for now to focus on filtering */}
+      <div className="controls-panel__group">
+        <label htmlFor="pace-input" className="controls-panel__label">3. Target Race Pace (MM:SS)</label>
+        <input 
+          type="text" 
+          id="pace-input" 
+          className="controls-panel__input" 
+          value={targetPace}
+          onChange={handlePaceInputChange}
+        />
+      </div>
 
-      <button className="controls-panel__button" onClick={handleSimulate}>GO!</button>
+      <button className="controls-panel__button" onClick={handleSimulate}>
+        GO!
+      </button>
     </div>
   );
 };

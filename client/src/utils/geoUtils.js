@@ -109,3 +109,34 @@ export const getElevationForMileMarkers = async (markers) => {
     return null;
   }
 };
+
+/**
+ * Estimates the current incline percentage based on the runner's position on the course.
+ * @param {number} currentMile - The runner's current distance into the race.
+ * @param {Object} mileMarkers - The object containing coordinate and elevation data for the course.
+ * @returns {number} The incline percentage. Positive for uphill, negative for downhill.
+ */
+export const calculateIncline = (currentMile, mileMarkers) => {
+  if (!mileMarkers || currentMile < 0) return 0;
+
+  // Find the key for the marker just before the current position
+  const prevMarkerKey = (Math.floor(currentMile * 10) / 10).toFixed(1);
+  // Find the key for the marker just after the current position
+  const nextMarkerKey = (Math.ceil(currentMile * 10) / 10).toFixed(1);
+
+  const prevPoint = mileMarkers[prevMarkerKey];
+  const nextPoint = mileMarkers[nextMarkerKey];
+
+  // If we're at the very start, end, or can't find the points, assume flat terrain.
+  if (!prevPoint || !nextPoint || prevMarkerKey === nextMarkerKey) {
+    return 0;
+  }
+
+  // Rise: difference in elevation (in feet)
+  const rise = nextPoint.elevation_ft - prevPoint.elevation_ft;
+  // Run: distance between markers is always 0.1 miles, converted to feet
+  const run = 0.1 * 5280; // 528 feet
+
+  const incline = (rise / run) * 100;
+  return incline;
+};
