@@ -2,7 +2,7 @@ import React from 'react';
 
 // Formats a Date object into a clock time string like "07:21:30 AM"
 const formatClockTime = (date) => {
-  if (!date) return "--:--:--"; // Default display before simulation starts
+  if (!date) return "--:--:--";
   return date.toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
@@ -20,9 +20,20 @@ const formatPace = (totalSeconds) => {
   return `${paddedMinutes}:${paddedSeconds}`;
 };
 
+// NEW: Formats total seconds into an HH:MM duration string
+const formatDuration = (totalSeconds) => {
+  if (totalSeconds === 0) return "00:00";
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const paddedHours = hours.toString().padStart(2, '0');
+  const paddedMinutes = minutes.toString().padStart(2, '0');
+  return `${paddedHours}:${paddedMinutes}`;
+};
+
 const StatusBar = ({ status }) => {
   const { 
-    clockTime = null, 
+    clockTime = null,
+    elapsedTime = 0, // NEW: receive elapsed time
     mile = 0, 
     pace = 0, 
     incline = 0 
@@ -31,8 +42,12 @@ const StatusBar = ({ status }) => {
   return (
     <div className="status-bar">
       <div className="status-bar__metric">
-        <span className="status-bar__label">Time</span>
+        <span className="status-bar__label">Clock Time</span>
         <span className="status-bar__value">{formatClockTime(clockTime)}</span>
+      </div>
+      <div className="status-bar__metric">
+        <span className="status-bar__label">Total Time</span>
+        <span className="status-bar__value">{formatDuration(elapsedTime)}</span>
       </div>
       <div className="status-bar__metric">
         <span className="status-bar__label">Mile</span>

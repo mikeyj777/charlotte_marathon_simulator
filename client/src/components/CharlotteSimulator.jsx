@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Controls from './panels/Controls';
 import MapView from './panels/MapView';
 import StatusBar from './panels/StatusBar';
+import ElevationProfile from './panels/ElevationProfile';
 import { parseCSV, calculateAdjustedPace } from '../utils/utils.js';
 import { getCoordsFromKML, calculateMileMarkers, getElevationForMileMarkers, getPositionForMile, calculateIncline } from '../utils/geoUtils.js';
 
@@ -24,7 +25,6 @@ const CharlotteSimulator = () => {
   const lastUiUpdateTime = useRef(0);
   const raceStartDate = useRef(null);
 
-  // Main animation loop management
   useEffect(() => {
     const simulationStep = (timestamp) => {
       if (!previousTimestamp.current) {
@@ -48,8 +48,11 @@ const CharlotteSimulator = () => {
         
         const currentClockTime = new Date(raceStartDate.current.getTime() + (simulationState.current.raceTime * 1000));
         const incline = calculateIncline(currentDistance, mileMarkers);
+        
+        // --- CHANGE IS HERE ---
         setCurrentStatus({
           clockTime: currentClockTime,
+          elapsedTime: simulationState.current.raceTime, // Pass the elapsed time
           mile: currentDistance,
           pace: currentPace,
           incline: incline,
@@ -79,7 +82,6 @@ const CharlotteSimulator = () => {
     };
   }, [isRunning, mileMarkers, targetPace, speedMultiplier]);
 
-  // Effect to auto-filter weather data on load
   useEffect(() => {
     if (fullWeatherData) {
       handleYearSelect(defaultYear);
@@ -175,11 +177,12 @@ const CharlotteSimulator = () => {
         <div className="main-panel__status-bar">
           <StatusBar status={currentStatus} />
         </div>
-        <div className="main-panel__weather-bar">
-          {/* WeatherBar component will go here */}
-        </div>
+        <div className="main-panel__weather-bar"></div>
         <div className="main-panel__elevation-profile">
-          {/* ElevationProfile component will go here */}
+          <ElevationProfile 
+            mileMarkers={mileMarkers}
+            currentMile={currentStatus?.mile}
+          />
         </div>
       </div>
       <div className="charlotte-simulator__control-panel">

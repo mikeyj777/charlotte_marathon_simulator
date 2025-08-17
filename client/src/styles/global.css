@@ -8,3 +8,4 @@ import and include all other component stylesheets for reference */
 @import './Controls.css';
 @import './MapView.css';
 @import './StatusBar.css';
+@import './ElevationProfile.css';

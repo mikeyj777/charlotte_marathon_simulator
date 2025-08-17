@@ -1,0 +1,48 @@
+/*
+  ElevationProfile.css
+  - Styles the SVG elevation chart.
+*/
+
+.elevation-profile {
+  width: 100%;
+  height: 100%;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.elevation-profile__svg {
+  width: 100%;
+  height: 100%;
+}
+
+.elevation-profile__path {
+  fill: #e9ecef;
+  stroke: #007bff;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.elevation-profile__marker {
+  fill: #007bff; /* This blue matches the map marker */
+  stroke: #ffffff;
+  stroke-width: 2;
+  transition: cx 0.25s linear, cy 0.25s linear;
+}
+
+.elevation-profile__axis-label {
+  font-size: 10px;
+  fill: #6c757d; /* Muted grey for labels */
+  font-family: Arial, sans-serif;
+}
+
+.elevation-profile__axis-label--y {
+  text-anchor: end; /* Align text to the right of its x-coordinate */
+}
+
+.elevation-profile__axis-label--x {
+  text-anchor: middle; /* Center text on its x-coordinate */
+}
