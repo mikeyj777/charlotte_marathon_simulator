@@ -9,19 +9,22 @@ const sliderToSpeed = (sliderValue) => {
     // Maps the slider range [0, 24] to the speed range [0.5x, 0.9x]
     return 0.5 + (value / 24) * 0.4;
   } else {
-    // Maps the slider range [26, 100] to the speed range [1.1x, 10.0x]
-    return 1.0 + ((value - 25) / 75) * 9.0;
+    // Maps the slider range [26, 100] to the speed range [1.1x, 20.0x]
+    return 1.0 + ((value - 25) / 75) * 20.0;
   }
 };
 
 const Controls = ({ 
+  isRunning,
   onFileLoad, 
   onRouteLoad, 
   onYearSelect, 
   onPaceChange,
   onStartTimeChange,
   onSpeedChange,
-  onStartSimulation 
+  onStartSimulation,
+  onPauseSimulation,
+  onResetSimulation  
 }) => {
   const [selectedYear, setSelectedYear] = useState('2024');
   const [weatherFileName, setWeatherFileName] = useState('');
@@ -88,7 +91,6 @@ const Controls = ({
 
       <div className="controls-panel__group">
         <label className="controls-panel__label">2. Configure Simulation</label>
-        
         <label htmlFor="year-select" className="controls-panel__sub-label">Year</label>
         <select id="year-select" className="controls-panel__select" value={selectedYear} onChange={handleYearChange}>
           <option value="2024">2024</option>
@@ -99,10 +101,8 @@ const Controls = ({
           <option value="2019">2019</option>
           <option value="2018">2018</option>
         </select>
-        
         <label htmlFor="start-time" className="controls-panel__sub-label">Start Time</label>
         <input type="time" id="start-time" className="controls-panel__input" value={startTime} onChange={handleStartTimeChange} />
-        
         <label htmlFor="pace-input" className="controls-panel__sub-label">Target Pace (MM:SS)</label>
         <input type="text" id="pace-input" className="controls-panel__input" value={targetPace} onChange={handlePaceInputChange} />
       </div>
@@ -121,9 +121,31 @@ const Controls = ({
         />
       </div>
 
-      <button className="controls-panel__button" onClick={() => onStartSimulation(targetPace)}>
-        GO!
-      </button>
+      <div className="controls-panel__actions">
+        {isRunning ? (
+          <>
+            <button 
+              className="controls-panel__button controls-panel__button--pause" 
+              onClick={onPauseSimulation}
+            >
+              PAUSE
+            </button>
+            <button 
+              className="controls-panel__button controls-panel__button--reset" 
+              onClick={onResetSimulation}
+            >
+              RESET
+            </button>
+          </>
+        ) : (
+          <button 
+            className="controls-panel__button controls-panel__button--go" 
+            onClick={() => onStartSimulation(targetPace)}
+          >
+            GO!
+          </button>
+        )}
+      </div>
     </div>
   );
 };

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Controls from './panels/Controls';
 import MapView from './panels/MapView';
 import { parseCSV, calculateAdjustedPace } from '../utils/utils.js';
-import { getCoordsFromKML, calculateMileMarkers, getElevationForMileMarkers, getPositionForMile } from '../utils/geoUtils.js';
+import { getCoordsFromKML, calculateMileMarkers, getElevationForMileMarkers, getPositionForMile, calculateIncline } from '../utils/geoUtils.js';
 
 const CharlotteSimulator = () => {
   const [fullWeatherData, setFullWeatherData] = useState(null);
@@ -20,6 +20,7 @@ const CharlotteSimulator = () => {
   const previousTimestamp = useRef(null);
   const simulationState = useRef({ totalDistance: 0 });
 
+  // Main animation loop management
   useEffect(() => {
     const simulationStep = (timestamp) => {
       if (!previousTimestamp.current) {
@@ -54,6 +55,7 @@ const CharlotteSimulator = () => {
     };
   }, [isRunning, mileMarkers, targetPace, speedMultiplier]);
 
+  // Effect to auto-filter weather data on load
   useEffect(() => {
     if (fullWeatherData) {
       handleYearSelect(defaultYear);
@@ -104,21 +106,35 @@ const CharlotteSimulator = () => {
 
   const handleStartSimulation = (pace) => {
     if (!mileMarkers || Object.keys(mileMarkers).length === 0) {
-      console.error("Cannot start simulation: Route data is not loaded or is invalid.");
       alert("Please load a valid KML race route file first.");
       return;
     }
-    console.log(`Starting simulation with target pace: ${pace}`);
-    setTargetPace(pace);
-    simulationState.current = { totalDistance: 0 };
-    const startPosition = getPositionForMile(0, mileMarkers);
-    if (!startPosition) {
-      console.error("Could not determine a valid start position for the simulation.");
-      return;
+    
+    if (simulationState.current.totalDistance === 0) {
+      console.log(`Starting simulation with target pace: ${pace}`);
+      const startPosition = getPositionForMile(0, mileMarkers);
+      setRunnerPosition(startPosition);
+    } else {
+      console.log('Resuming simulation...');
     }
-    setRunnerPosition(startPosition);
+    
+    setTargetPace(pace);
     previousTimestamp.current = null;
     setIsRunning(true);
+  };
+  
+  const handlePauseSimulation = () => {
+    console.log('Pausing simulation...');
+    setIsRunning(false);
+  };
+
+  const handleResetSimulation = () => {
+    console.log('Resetting simulation...');
+    setIsRunning(false);
+    simulationState.current = { totalDistance: 0 };
+    const startPosition = getPositionForMile(0, mileMarkers);
+    setRunnerPosition(startPosition);
+    previousTimestamp.current = null;
   };
 
   return (
@@ -133,6 +149,7 @@ const CharlotteSimulator = () => {
       </div>
       <div className="charlotte-simulator__control-panel">
         <Controls
+          isRunning={isRunning}
           onFileLoad={handleWeatherLoad}
           onRouteLoad={handleRouteLoad}
           onYearSelect={handleYearSelect}
@@ -140,6 +157,8 @@ const CharlotteSimulator = () => {
           onStartTimeChange={handleStartTimeChange}
           onSpeedChange={handleSpeedChange}
           onStartSimulation={handleStartSimulation}
+          onPauseSimulation={handlePauseSimulation}
+          onResetSimulation={handleResetSimulation}
         />
       </div>
     </div>

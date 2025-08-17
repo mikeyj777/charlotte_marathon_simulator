@@ -16,9 +16,18 @@
 
 .controls-panel__label {
   font-weight: bold;
-  margin-bottom: 8px;
+  margin-bottom: 15px; /* Increased margin */
   color: #333;
 }
+
+.controls-panel__sub-label {
+  font-weight: normal;
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 5px;
+  margin-top: 10px; /* Space between inputs */
+}
+
 
 .controls-panel__select,
 .controls-panel__input {
@@ -29,23 +38,59 @@
   font-size: 1rem;
 }
 
-/* Primary "GO" button */
+.controls-panel__slider {
+  width: 100%;
+  cursor: pointer;
+}
+
+/* Primary action button styles */
 .controls-panel__button {
   padding: 15px;
   font-size: 1.5rem;
   font-weight: bold;
   color: white;
-  background-color: #28a745; /* A strong green color */
   border: none;
   border-radius: 5px;
   cursor: pointer;
   text-align: center;
-  margin-top: 10px; /* Add some space above the button */
-  transition: background-color 0.2s ease-in-out;
+  margin-top: 10px;
+  transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+  width: 100%;
 }
 
-.controls-panel__button:hover {
-  background-color: #218838; /* A slightly darker green on hover */
+.controls-panel__button:active {
+  transform: scale(0.98);
+}
+
+/* Green for GO */
+.controls-panel__button--go {
+  background-color: #28a745;
+}
+.controls-panel__button--go:hover {
+  background-color: #218838;
+}
+
+/* Blue for PAUSE */
+.controls-panel__button--pause {
+  background-color: #007bff;
+}
+.controls-panel__button--pause:hover {
+  background-color: #0069d9;
+}
+
+/* Yellow for RESET */
+.controls-panel__button--reset {
+  background-color: #ffc107;
+  color: #212529;
+}
+.controls-panel__button--reset:hover {
+  background-color: #e0a800;
+}
+
+/* A container for the action buttons (GO/PAUSE/RESET) */
+.controls-panel__actions {
+  display: flex;
+  gap: 10px;
 }
 
 /* Secondary button for actions like loading files */
@@ -69,5 +114,5 @@
   margin-top: 10px;
   font-style: italic;
   color: #555;
-  word-wrap: break-word; /* Ensure long file names don't overflow */
+  word-wrap: break-word;
 }

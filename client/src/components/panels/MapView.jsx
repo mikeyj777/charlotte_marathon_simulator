@@ -7,21 +7,15 @@ const MapView = ({ raceRoute, runnerPosition }) => {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const kmlLayerRef = useRef(null);
-  const runnerMarkerRef = useRef(null); // Ref to hold the runner marker
+  const runnerMarkerRef = useRef(null);
 
-  // Effect for initializing the map (runs only once)
+  // Effect for initializing the map
   useEffect(() => {
     if (mapInstanceRef.current) return;
-
-    mapInstanceRef.current = L.map(mapContainerRef.current).setView(
-      [35.216636, -80.820670],
-      12
-    );
-
+    mapInstanceRef.current = L.map(mapContainerRef.current).setView([35.216636, -80.820670], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(mapInstanceRef.current);
-
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
@@ -30,31 +24,28 @@ const MapView = ({ raceRoute, runnerPosition }) => {
     };
   }, []);
 
-  // Effect for adding the KML overlay (runs when raceRoute changes)
+  // Effect for adding the KML overlay
   useEffect(() => {
     if (!raceRoute || !mapInstanceRef.current) return;
-
     if (kmlLayerRef.current) {
       mapInstanceRef.current.removeLayer(kmlLayerRef.current);
     }
-    
-    const kml = parseKML(raceRoute);
-    const kmlLayer = new L.KML(kml, { async: true });
-
-    kmlLayer.on('loaded', (e) => {
-      mapInstanceRef.current.fitBounds(e.target.getBounds());
-    });
-    
-    mapInstanceRef.current.addLayer(kmlLayer);
-    kmlLayerRef.current = kmlLayer;
-    
+    try {
+      const kml = parseKML(raceRoute);
+      const kmlLayer = new L.KML(kml, { async: true });
+      kmlLayer.on('loaded', (e) => {
+        mapInstanceRef.current.fitBounds(e.target.getBounds());
+      });
+      mapInstanceRef.current.addLayer(kmlLayer);
+      kmlLayerRef.current = kmlLayer;
+    } catch (error) {
+      console.error("Failed to process KML layer. The KML file may contain invalid coordinate data.", error);
+    }
   }, [raceRoute]);
 
   // Effect for updating the runner marker
   useEffect(() => {
     if (!mapInstanceRef.current || !runnerPosition) return;
-    
-    // If the marker doesn't exist, create it
     if (!runnerMarkerRef.current) {
       runnerMarkerRef.current = L.circleMarker(runnerPosition, {
         radius: 8,
@@ -64,10 +55,9 @@ const MapView = ({ raceRoute, runnerPosition }) => {
         fillOpacity: 1,
       }).addTo(mapInstanceRef.current);
     } else {
-      // Otherwise, just update its position
       runnerMarkerRef.current.setLatLng(runnerPosition);
     }
-  }, [runnerPosition]); // This effect runs whenever runnerPosition changes
+  }, [runnerPosition]);
 
   return (
     <div ref={mapContainerRef} className="map-view-container" />
