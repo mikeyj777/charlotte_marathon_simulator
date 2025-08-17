@@ -121,12 +121,23 @@ const CharlotteSimulator = () => {
     try {
       const content = await file.text();
       setRaceRoute(content);
+      console.log('Route file loaded.');
+
       const coords = getCoordsFromKML(content);
       if (!coords) return;
-      const markersWithoutElevation = calculateMileMarkers(coords);
+      console.log('Coordinates extracted from KML.');
+
+      // --- CHANGE IS HERE: Use the new 0.01 interval ---
+      const interval = 0.01; // Set desired granularity
+      const markersWithoutElevation = calculateMileMarkers(coords, interval);
+      console.log(`Mile marker coordinates calculated at ${interval}mi intervals. Fetching elevations...`);
+
       const finalMarkers = await getElevationForMileMarkers(markersWithoutElevation);
       setMileMarkers(finalMarkers);
-    } catch (error) { console.error('Error handling route file:', error); }
+      console.log('Final mile markers with elevation created.', finalMarkers);
+    } catch (error) {
+      console.error('Error handling route file:', error);
+    }
   };
 
   const handleYearSelect = (year) => {
