@@ -1,20 +1,27 @@
 import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet-kml';
-import { parseKML } from '../../utils/geoUtils.js'; // Updated import path
+import { parseKML } from '../../utils/geoUtils.js';
 
-const MapView = ({ raceRoute }) => {
-  // ... (the rest of the component code remains exactly the same)
+const MapView = ({ raceRoute, runnerPosition }) => {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const kmlLayerRef = useRef(null);
+  const runnerMarkerRef = useRef(null); // Ref to hold the runner marker
 
+  // Effect for initializing the map (runs only once)
   useEffect(() => {
     if (mapInstanceRef.current) return;
-    mapInstanceRef.current = L.map(mapContainerRef.current).setView([35.216636, -80.820670], 12);
+
+    mapInstanceRef.current = L.map(mapContainerRef.current).setView(
+      [35.216636, -80.820670],
+      12
+    );
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(mapInstanceRef.current);
+
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
@@ -23,19 +30,44 @@ const MapView = ({ raceRoute }) => {
     };
   }, []);
 
+  // Effect for adding the KML overlay (runs when raceRoute changes)
   useEffect(() => {
     if (!raceRoute || !mapInstanceRef.current) return;
+
     if (kmlLayerRef.current) {
       mapInstanceRef.current.removeLayer(kmlLayerRef.current);
     }
+    
     const kml = parseKML(raceRoute);
     const kmlLayer = new L.KML(kml, { async: true });
+
     kmlLayer.on('loaded', (e) => {
       mapInstanceRef.current.fitBounds(e.target.getBounds());
     });
+    
     mapInstanceRef.current.addLayer(kmlLayer);
     kmlLayerRef.current = kmlLayer;
+    
   }, [raceRoute]);
+
+  // Effect for updating the runner marker
+  useEffect(() => {
+    if (!mapInstanceRef.current || !runnerPosition) return;
+    
+    // If the marker doesn't exist, create it
+    if (!runnerMarkerRef.current) {
+      runnerMarkerRef.current = L.circleMarker(runnerPosition, {
+        radius: 8,
+        color: '#ffffff',
+        weight: 2,
+        fillColor: '#007bff',
+        fillOpacity: 1,
+      }).addTo(mapInstanceRef.current);
+    } else {
+      // Otherwise, just update its position
+      runnerMarkerRef.current.setLatLng(runnerPosition);
+    }
+  }, [runnerPosition]); // This effect runs whenever runnerPosition changes
 
   return (
     <div ref={mapContainerRef} className="map-view-container" />

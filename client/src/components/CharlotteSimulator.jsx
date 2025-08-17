@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Controls from './panels/Controls';
 import MapView from './panels/MapView';
 import { parseCSV, calculateAdjustedPace } from '../utils/utils.js';
-import { getCoordsFromKML, calculateMileMarkers, getElevationForMileMarkers } from '../utils/geoUtils.js';
+import { getCoordsFromKML, calculateMileMarkers, getElevationForMileMarkers, getPositionForMile } from '../utils/geoUtils.js';
 
 const CharlotteSimulator = () => {
   const [fullWeatherData, setFullWeatherData] = useState(null);
@@ -10,7 +10,49 @@ const CharlotteSimulator = () => {
   const [raceRoute, setRaceRoute] = useState(null);
   const [mileMarkers, setMileMarkers] = useState(null);
   const [targetPace, setTargetPace] = useState('12:00');
+  const [startTime, setStartTime] = useState('07:20');
+  const [speedMultiplier, setSpeedMultiplier] = useState(1.0);
   const [defaultYear] = useState('2024');
+  const [isRunning, setIsRunning] = useState(false);
+  const [runnerPosition, setRunnerPosition] = useState(null);
+
+  const animationFrameId = useRef(null);
+  const previousTimestamp = useRef(null);
+  const simulationState = useRef({ totalDistance: 0 });
+
+  useEffect(() => {
+    const simulationStep = (timestamp) => {
+      if (!previousTimestamp.current) {
+        previousTimestamp.current = timestamp;
+        animationFrameId.current = requestAnimationFrame(simulationStep);
+        return;
+      }
+      const deltaTime = (timestamp - previousTimestamp.current) / 1000;
+      const effectiveDeltaTime = deltaTime * speedMultiplier;
+      const totalCourseMiles = parseFloat(Object.keys(mileMarkers).pop());
+      const currentPace = calculateAdjustedPace(targetPace, simulationState.current.totalDistance, mileMarkers);
+      const distanceThisFrame = (1 / currentPace) * effectiveDeltaTime;
+      simulationState.current.totalDistance += distanceThisFrame;
+      const newPosition = getPositionForMile(simulationState.current.totalDistance, mileMarkers);
+      setRunnerPosition(newPosition);
+      if (simulationState.current.totalDistance >= totalCourseMiles) {
+        setIsRunning(false);
+        const finalPosition = getPositionForMile(totalCourseMiles, mileMarkers);
+        setRunnerPosition(finalPosition);
+        console.log('Simulation finished!');
+        return;
+      }
+      previousTimestamp.current = timestamp;
+      animationFrameId.current = requestAnimationFrame(simulationStep);
+    };
+
+    if (isRunning && mileMarkers) {
+      animationFrameId.current = requestAnimationFrame(simulationStep);
+    }
+    return () => {
+      cancelAnimationFrame(animationFrameId.current);
+    };
+  }, [isRunning, mileMarkers, targetPace, speedMultiplier]);
 
   useEffect(() => {
     if (fullWeatherData) {
@@ -34,14 +76,11 @@ const CharlotteSimulator = () => {
       const content = await file.text();
       setRaceRoute(content);
       console.log('Route file loaded.');
-
       const coords = getCoordsFromKML(content);
       if (!coords) return;
       console.log('Coordinates extracted from KML.');
-
       const markersWithoutElevation = calculateMileMarkers(coords);
       console.log('Mile marker coordinates calculated. Fetching their elevations...');
-
       const finalMarkers = await getElevationForMileMarkers(markersWithoutElevation);
       setMileMarkers(finalMarkers);
       console.log('Final mile markers with elevation created.', finalMarkers);
@@ -59,46 +98,47 @@ const CharlotteSimulator = () => {
     console.log(`Weather data filtered for ${year}.`);
   };
   
-  const handlePaceChange = (pace) => {
-    setTargetPace(pace);
-  };
-  
+  const handlePaceChange = (pace) => setTargetPace(pace);
+  const handleStartTimeChange = (time) => setStartTime(time);
+  const handleSpeedChange = (speed) => setSpeedMultiplier(speed);
+
   const handleStartSimulation = (pace) => {
-    console.log(`Starting simulation with target pace: ${pace}`);
-    // This is where the main animation loop will be triggered.
-    // We can test the pace function here:
-    if (mileMarkers) {
-      const testPaceAtMile10 = calculateAdjustedPace(pace, 10.5, mileMarkers);
-      console.log(`Adjusted pace at mile 10.5 would be: ${testPaceAtMile10} seconds/mile.`);
-      
-      const testPaceAtMile21 = calculateAdjustedPace(pace, 21.0, mileMarkers);
-      console.log(`Adjusted pace at mile 21.0 (with fatigue) would be: ${testPaceAtMile21} seconds/mile.`);
+    if (!mileMarkers || Object.keys(mileMarkers).length === 0) {
+      console.error("Cannot start simulation: Route data is not loaded or is invalid.");
+      alert("Please load a valid KML race route file first.");
+      return;
     }
+    console.log(`Starting simulation with target pace: ${pace}`);
+    setTargetPace(pace);
+    simulationState.current = { totalDistance: 0 };
+    const startPosition = getPositionForMile(0, mileMarkers);
+    if (!startPosition) {
+      console.error("Could not determine a valid start position for the simulation.");
+      return;
+    }
+    setRunnerPosition(startPosition);
+    previousTimestamp.current = null;
+    setIsRunning(true);
   };
 
   return (
     <div className="charlotte-simulator">
       <div className="charlotte-simulator__main-panel">
         <div className="main-panel__map-view">
-          <MapView raceRoute={raceRoute} />
+          <MapView raceRoute={raceRoute} runnerPosition={runnerPosition} />
         </div>
-        <div className="main-panel__status-bar">
-          {/* StatusBar component will go here */}
-        </div>
-        <div className="main-panel__weather-bar">
-          {/* WeatherBar component will go here */}
-        </div>
-        <div className="main-panel__elevation-profile">
-          {/* ElevationProfile component will go here */}
-        </div>
+        <div className="main-panel__status-bar"></div>
+        <div className="main-panel__weather-bar"></div>
+        <div className="main-panel__elevation-profile"></div>
       </div>
-
       <div className="charlotte-simulator__control-panel">
         <Controls
           onFileLoad={handleWeatherLoad}
           onRouteLoad={handleRouteLoad}
           onYearSelect={handleYearSelect}
           onPaceChange={handlePaceChange}
+          onStartTimeChange={handleStartTimeChange}
+          onSpeedChange={handleSpeedChange}
           onStartSimulation={handleStartSimulation}
         />
       </div>
