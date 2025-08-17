@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Controls from './panels/Controls';
 import MapView from './panels/MapView';
+import StatusBar from './panels/StatusBar';
 import { parseCSV, calculateAdjustedPace } from '../utils/utils.js';
 import { getCoordsFromKML, calculateMileMarkers, getElevationForMileMarkers, getPositionForMile, calculateIncline } from '../utils/geoUtils.js';
 
@@ -11,14 +12,17 @@ const CharlotteSimulator = () => {
   const [mileMarkers, setMileMarkers] = useState(null);
   const [targetPace, setTargetPace] = useState('12:00');
   const [startTime, setStartTime] = useState('07:20');
-  const [speedMultiplier, setSpeedMultiplier] = useState(1.0);
+  const [speedMultiplier, setSpeedMultiplier] = useState(10.0);
   const [defaultYear] = useState('2024');
   const [isRunning, setIsRunning] = useState(false);
   const [runnerPosition, setRunnerPosition] = useState(null);
+  const [currentStatus, setCurrentStatus] = useState(null);
 
   const animationFrameId = useRef(null);
   const previousTimestamp = useRef(null);
-  const simulationState = useRef({ totalDistance: 0 });
+  const simulationState = useRef({ totalDistance: 0, raceTime: 0 });
+  const lastUiUpdateTime = useRef(0);
+  const raceStartDate = useRef(null);
 
   // Main animation loop management
   useEffect(() => {
@@ -28,14 +32,33 @@ const CharlotteSimulator = () => {
         animationFrameId.current = requestAnimationFrame(simulationStep);
         return;
       }
+
       const deltaTime = (timestamp - previousTimestamp.current) / 1000;
       const effectiveDeltaTime = deltaTime * speedMultiplier;
-      const totalCourseMiles = parseFloat(Object.keys(mileMarkers).pop());
-      const currentPace = calculateAdjustedPace(targetPace, simulationState.current.totalDistance, mileMarkers);
+      simulationState.current.raceTime += effectiveDeltaTime;
+
+      const currentDistance = simulationState.current.totalDistance;
+      const currentPace = calculateAdjustedPace(targetPace, currentDistance, mileMarkers);
       const distanceThisFrame = (1 / currentPace) * effectiveDeltaTime;
       simulationState.current.totalDistance += distanceThisFrame;
-      const newPosition = getPositionForMile(simulationState.current.totalDistance, mileMarkers);
-      setRunnerPosition(newPosition);
+
+      if (timestamp - lastUiUpdateTime.current > 250) {
+        const newPosition = getPositionForMile(simulationState.current.totalDistance, mileMarkers);
+        setRunnerPosition(newPosition);
+        
+        const currentClockTime = new Date(raceStartDate.current.getTime() + (simulationState.current.raceTime * 1000));
+        const incline = calculateIncline(currentDistance, mileMarkers);
+        setCurrentStatus({
+          clockTime: currentClockTime,
+          mile: currentDistance,
+          pace: currentPace,
+          incline: incline,
+        });
+        
+        lastUiUpdateTime.current = timestamp;
+      }
+      
+      const totalCourseMiles = parseFloat(Object.keys(mileMarkers).pop());
       if (simulationState.current.totalDistance >= totalCourseMiles) {
         setIsRunning(false);
         const finalPosition = getPositionForMile(totalCourseMiles, mileMarkers);
@@ -43,6 +66,7 @@ const CharlotteSimulator = () => {
         console.log('Simulation finished!');
         return;
       }
+
       previousTimestamp.current = timestamp;
       animationFrameId.current = requestAnimationFrame(simulationStep);
     };
@@ -112,6 +136,10 @@ const CharlotteSimulator = () => {
     
     if (simulationState.current.totalDistance === 0) {
       console.log(`Starting simulation with target pace: ${pace}`);
+      const [startHours, startMinutes] = startTime.split(':').map(Number);
+      const startDate = new Date();
+      startDate.setHours(startHours, startMinutes, 0, 0);
+      raceStartDate.current = startDate;
       const startPosition = getPositionForMile(0, mileMarkers);
       setRunnerPosition(startPosition);
     } else {
@@ -131,9 +159,10 @@ const CharlotteSimulator = () => {
   const handleResetSimulation = () => {
     console.log('Resetting simulation...');
     setIsRunning(false);
-    simulationState.current = { totalDistance: 0 };
+    simulationState.current = { totalDistance: 0, raceTime: 0 };
     const startPosition = getPositionForMile(0, mileMarkers);
     setRunnerPosition(startPosition);
+    setCurrentStatus(null);
     previousTimestamp.current = null;
   };
 
@@ -143,9 +172,15 @@ const CharlotteSimulator = () => {
         <div className="main-panel__map-view">
           <MapView raceRoute={raceRoute} runnerPosition={runnerPosition} />
         </div>
-        <div className="main-panel__status-bar"></div>
-        <div className="main-panel__weather-bar"></div>
-        <div className="main-panel__elevation-profile"></div>
+        <div className="main-panel__status-bar">
+          <StatusBar status={currentStatus} />
+        </div>
+        <div className="main-panel__weather-bar">
+          {/* WeatherBar component will go here */}
+        </div>
+        <div className="main-panel__elevation-profile">
+          {/* ElevationProfile component will go here */}
+        </div>
       </div>
       <div className="charlotte-simulator__control-panel">
         <Controls

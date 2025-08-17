@@ -1,16 +1,17 @@
 import React, { useState, useRef } from 'react';
 
-// Helper to convert the slider's 0-100 value to a 0.5x-10x speed multiplier
+// Helper to convert the slider's 0-100 value to the new 0.5x-100x speed range
 const sliderToSpeed = (sliderValue) => {
   const value = parseInt(sliderValue, 10);
-  if (value === 25) return 1.0; // Real-time at the 1/4 mark
+  
+  if (value === 50) return 10.0; // Default: 10x speed at the halfway mark
 
-  if (value < 25) {
-    // Maps the slider range [0, 24] to the speed range [0.5x, 0.9x]
-    return 0.5 + (value / 24) * 0.4;
+  if (value < 50) {
+    // Maps the slider range [0, 49] to the speed range [0.5x, 9.9x]
+    return 0.5 + (value / 50) * 9.5;
   } else {
-    // Maps the slider range [26, 100] to the speed range [1.1x, 20.0x]
-    return 1.0 + ((value - 25) / 75) * 20.0;
+    // Maps the slider range [51, 100] to the speed range [10.1x, 100x]
+    return 10.0 + ((value - 50) / 50) * 90.0;
   }
 };
 
@@ -31,11 +32,12 @@ const Controls = ({
   const [routeName, setRouteName] = useState('');
   const [targetPace, setTargetPace] = useState('12:00');
   const [startTime, setStartTime] = useState('07:20');
-  const [sliderValue, setSliderValue] = useState(25);
+  const [sliderValue, setSliderValue] = useState(50); // NEW: Default slider position is 50
 
   const weatherFileRef = useRef(null);
   const routeFileRef = useRef(null);
 
+  // All handler functions (handleLoadWeatherClick, etc.) remain the same
   const handleLoadWeatherClick = () => weatherFileRef.current.click();
   const handleWeatherFileChange = (event) => {
     const file = event.target.files[0];
@@ -44,7 +46,6 @@ const Controls = ({
       onFileLoad(file);
     }
   };
-
   const handleLoadRouteClick = () => routeFileRef.current.click();
   const handleRouteFileChange = (event) => {
     const file = event.target.files[0];
@@ -53,22 +54,18 @@ const Controls = ({
       onRouteLoad(file);
     }
   };
-
   const handleYearChange = (e) => {
     setSelectedYear(e.target.value);
     onYearSelect(e.target.value);
   };
-  
   const handlePaceInputChange = (e) => {
     setTargetPace(e.target.value);
     onPaceChange(e.target.value);
   };
-
   const handleStartTimeChange = (e) => {
     setStartTime(e.target.value);
     onStartTimeChange(e.target.value);
   };
-  
   const handleSpeedChange = (e) => {
     const value = e.target.value;
     setSliderValue(value);
@@ -78,6 +75,7 @@ const Controls = ({
 
   return (
     <div className="controls-panel">
+      {/* Input groups for file loading and simulation config remain the same */}
       <input type="file" ref={weatherFileRef} onChange={handleWeatherFileChange} style={{ display: 'none' }} accept=".csv" />
       <input type="file" ref={routeFileRef} onChange={handleRouteFileChange} style={{ display: 'none' }} accept=".kml,.gpx" />
 
