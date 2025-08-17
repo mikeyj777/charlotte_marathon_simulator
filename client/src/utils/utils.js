@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { calculateIncline } from './geoUtils.js'; // Import the new geo utility
 
 
@@ -81,4 +82,81 @@ export const calculateAdjustedPace = (targetPace, currentMile, mileMarkers) => {
   
   // 3. Return total adjusted pace
   return basePaceInSeconds + inclinePenalty + fatiguePenalty;
+};
+
+
+/**
+ * Finds and interpolates weather data for a specific time from an array of hourly data.
+ * @param {Date} clockTime - The current time in the simulation.
+ * @param {Array<Object>} weatherData - The array of hourly weather records.
+ * @returns {Object|null} An object with the interpolated weather conditions.
+ */
+export const findCurrentWeather = (clockTime, weatherData) => {
+  if (!clockTime || !weatherData || weatherData.length === 0) return null;
+
+  // --- NEW: Helper to ensure consistent property names ---
+  const normalizeRecord = (record) => {
+    if (!record) return null;
+    return {
+      temperature: record.temperature_2m_deg_f,
+      dewPoint: record.dew_point_2m_deg_f,
+      windSpeed: record.wind_speed_10m_mph,
+      windDirection: record.wind_direction_10m_deg_from,
+    };
+  };
+
+  // console.log(`Finding weather for time: ${clockTime.toISOString()}`);
+  // console.log(`Weather data records available: ${weatherData.length}`);
+  // console.log(`Weather data sample: ${weatherData}`);
+
+  const currentTimeMs = clockTime.getTime();
+  
+  let prevRecord = null;
+  let nextRecord = null;
+  for (const record of weatherData) {
+    const recordTime = new Date(record.date).getTime();
+    if (recordTime <= currentTimeMs) {
+      prevRecord = record;
+    } else {
+      nextRecord = record;
+      break;
+    }
+  }
+
+  // If there's no bracket, return the closest record with normalized keys
+  if (!nextRecord) return normalizeRecord(prevRecord);
+  if (!prevRecord) return normalizeRecord(nextRecord);
+  
+  const prevTime = new Date(prevRecord.date).getTime();
+  const nextTime = new Date(nextRecord.date).getTime();
+  
+  // If we land exactly on a record time, return it with normalized keys
+  if (currentTimeMs === prevTime) return normalizeRecord(prevRecord);
+  if (currentTimeMs === nextTime) return normalizeRecord(nextRecord);
+
+  const totalTimeDiff = nextTime - prevTime;
+  if (totalTimeDiff === 0) return normalizeRecord(prevRecord);
+  const timeIntoSegment = currentTimeMs - prevTime;
+  const ratio = timeIntoSegment / totalTimeDiff;
+
+  const interpolate = (key) => prevRecord[key] + (nextRecord[key] - prevRecord[key]) * ratio;
+  const interpolateAngle = (key) => {
+    const d = Math.abs(nextRecord[key] - prevRecord[key]);
+    if (d > 180) {
+      if (nextRecord[key] > prevRecord[key]) {
+        return (prevRecord[key] + (nextRecord[key] - 360 - prevRecord[key]) * ratio + 360) % 360;
+      } else {
+        return (prevRecord[key] + (nextRecord[key] + 360 - prevRecord[key]) * ratio) % 360;
+      }
+    } else {
+      return interpolate(key);
+    }
+  };
+  
+  return {
+    temperature: interpolate('temperature_2m_deg_f'),
+    dewPoint: interpolate('dew_point_2m_deg_f'),
+    windSpeed: interpolate('wind_speed_10m_mph'),
+    windDirection: interpolateAngle('wind_direction_10m_deg_from'),
+  };
 };

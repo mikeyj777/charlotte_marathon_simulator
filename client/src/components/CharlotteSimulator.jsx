@@ -3,8 +3,9 @@ import Controls from './panels/Controls';
 import MapView from './panels/MapView';
 import StatusBar from './panels/StatusBar';
 import ElevationProfile from './panels/ElevationProfile';
-import { parseCSV, calculateAdjustedPace } from '../utils/utils.js';
-import { getCoordsFromKML, calculateMileMarkers, getElevationForMileMarkers, getPositionForMile, calculateIncline } from '../utils/geoUtils.js';
+import WeatherBar from './panels/WeatherBar';
+import { parseCSV, calculateAdjustedPace, findCurrentWeather } from '../utils/utils.js';
+import { getCoordsFromKML, calculateMileMarkers, getElevationForMileMarkers, getPositionForMile, calculateIncline, calculateBearing, getDirectionForMile } from '../utils/geoUtils.js';
 
 const CharlotteSimulator = () => {
   const [fullWeatherData, setFullWeatherData] = useState(null);
@@ -18,6 +19,7 @@ const CharlotteSimulator = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [runnerPosition, setRunnerPosition] = useState(null);
   const [currentStatus, setCurrentStatus] = useState(null);
+  const [currentWeather, setCurrentWeather] = useState(null);
 
   const animationFrameId = useRef(null);
   const previousTimestamp = useRef(null);
@@ -25,6 +27,7 @@ const CharlotteSimulator = () => {
   const lastUiUpdateTime = useRef(0);
   const raceStartDate = useRef(null);
 
+  // Main animation loop management
   useEffect(() => {
     const simulationStep = (timestamp) => {
       if (!previousTimestamp.current) {
@@ -48,15 +51,19 @@ const CharlotteSimulator = () => {
         
         const currentClockTime = new Date(raceStartDate.current.getTime() + (simulationState.current.raceTime * 1000));
         const incline = calculateIncline(currentDistance, mileMarkers);
-        
-        // --- CHANGE IS HERE ---
         setCurrentStatus({
           clockTime: currentClockTime,
-          elapsedTime: simulationState.current.raceTime, // Pass the elapsed time
+          elapsedTime: simulationState.current.raceTime,
           mile: currentDistance,
           pace: currentPace,
           incline: incline,
         });
+
+        const runnerDirection = getDirectionForMile(currentDistance, mileMarkers);
+        const weather = findCurrentWeather(currentClockTime, simulationData);
+        if (weather) {
+          setCurrentWeather({ ...weather, runnerDirection });
+        }
         
         lastUiUpdateTime.current = timestamp;
       }
@@ -80,41 +87,46 @@ const CharlotteSimulator = () => {
     return () => {
       cancelAnimationFrame(animationFrameId.current);
     };
-  }, [isRunning, mileMarkers, targetPace, speedMultiplier]);
+  }, [isRunning, mileMarkers, targetPace, speedMultiplier, simulationData]);
 
+  // Effect to auto-filter weather data on load
   useEffect(() => {
     if (fullWeatherData) {
       handleYearSelect(defaultYear);
     }
   }, [fullWeatherData]);
 
+  // Effect to set initial weather display before simulation starts
+  useEffect(() => {
+    if (simulationData && startTime) {
+      const [startHours, startMinutes] = startTime.split(':').map(Number);
+      const startDate = new Date(simulationData[0].date);
+      startDate.setHours(startHours, startMinutes, 0, 0);
+      const initialWeather = findCurrentWeather(startDate, simulationData);
+      if (initialWeather) {
+        setCurrentWeather(prev => ({ ...prev, ...initialWeather }));
+      }
+    }
+  }, [simulationData, startTime]);
+
   const handleWeatherLoad = async (file) => {
     try {
       const content = await file.text();
       const parsedData = parseCSV(content);
       setFullWeatherData(parsedData);
-      console.log('Full weather data loaded and parsed.');
-    } catch (error) {
-      console.error('Error reading weather file:', error);
-    }
+    } catch (error) { console.error('Error reading weather file:', error); }
   };
 
   const handleRouteLoad = async (file) => {
     try {
       const content = await file.text();
       setRaceRoute(content);
-      console.log('Route file loaded.');
       const coords = getCoordsFromKML(content);
       if (!coords) return;
-      console.log('Coordinates extracted from KML.');
       const markersWithoutElevation = calculateMileMarkers(coords);
-      console.log('Mile marker coordinates calculated. Fetching their elevations...');
       const finalMarkers = await getElevationForMileMarkers(markersWithoutElevation);
       setMileMarkers(finalMarkers);
-      console.log('Final mile markers with elevation created.', finalMarkers);
-    } catch (error) {
-      console.error('Error handling route file:', error);
-    }
+    } catch (error) { console.error('Error handling route file:', error); }
   };
 
   const handleYearSelect = (year) => {
@@ -123,7 +135,6 @@ const CharlotteSimulator = () => {
       new Date(record.date).getFullYear() === parseInt(year, 10)
     );
     setSimulationData(filteredData);
-    console.log(`Weather data filtered for ${year}.`);
   };
   
   const handlePaceChange = (pace) => setTargetPace(pace);
@@ -131,40 +142,32 @@ const CharlotteSimulator = () => {
   const handleSpeedChange = (speed) => setSpeedMultiplier(speed);
 
   const handleStartSimulation = (pace) => {
-    if (!mileMarkers || Object.keys(mileMarkers).length === 0) {
-      alert("Please load a valid KML race route file first.");
+    if (!mileMarkers || !simulationData) {
+      alert("Please load a valid KML and Weather file first.");
       return;
     }
-    
     if (simulationState.current.totalDistance === 0) {
-      console.log(`Starting simulation with target pace: ${pace}`);
       const [startHours, startMinutes] = startTime.split(':').map(Number);
-      const startDate = new Date();
+      const startDate = new Date(simulationData[0].date);
       startDate.setHours(startHours, startMinutes, 0, 0);
       raceStartDate.current = startDate;
       const startPosition = getPositionForMile(0, mileMarkers);
       setRunnerPosition(startPosition);
-    } else {
-      console.log('Resuming simulation...');
     }
-    
     setTargetPace(pace);
     previousTimestamp.current = null;
     setIsRunning(true);
   };
   
-  const handlePauseSimulation = () => {
-    console.log('Pausing simulation...');
-    setIsRunning(false);
-  };
+  const handlePauseSimulation = () => setIsRunning(false);
 
   const handleResetSimulation = () => {
-    console.log('Resetting simulation...');
     setIsRunning(false);
     simulationState.current = { totalDistance: 0, raceTime: 0 };
     const startPosition = getPositionForMile(0, mileMarkers);
     setRunnerPosition(startPosition);
     setCurrentStatus(null);
+    setCurrentWeather(null);
     previousTimestamp.current = null;
   };
 
@@ -177,7 +180,9 @@ const CharlotteSimulator = () => {
         <div className="main-panel__status-bar">
           <StatusBar status={currentStatus} />
         </div>
-        <div className="main-panel__weather-bar"></div>
+        <div className="main-panel__weather-bar">
+          <WeatherBar weatherState={currentWeather} />
+        </div>
         <div className="main-panel__elevation-profile">
           <ElevationProfile 
             mileMarkers={mileMarkers}

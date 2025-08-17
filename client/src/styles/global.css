@@ -9,3 +9,4 @@ import and include all other component stylesheets for reference */
 @import './MapView.css';
 @import './StatusBar.css';
 @import './ElevationProfile.css';
+@import './WeatherBar.css';
